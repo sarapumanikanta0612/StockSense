@@ -1,17 +1,13 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { navigationItems } from './config/navigation'
 import { AppShell } from './layouts/AppShell'
 import { DashboardPage } from './pages/DashboardPage'
-import { PlaceholderPage } from './pages/PlaceholderPage'
+import { LedgerPage } from './pages/LedgerPage'
+import { OperationListPage } from './pages/operations/OperationListPage'
 import { ProductDetailPage } from './pages/products/ProductDetailPage'
 import { ProductFormPage } from './pages/products/ProductFormPage'
 import { ProductListPage } from './pages/products/ProductListPage'
 
 export default function App() {
-  const placeholderItems = navigationItems.filter(
-    (item) => item.path !== '/dashboard' && item.path !== '/products',
-  )
-
   return (
     <BrowserRouter>
       <Routes>
@@ -24,13 +20,11 @@ export default function App() {
             <Route path=":id" element={<ProductDetailPage />} />
             <Route path=":id/edit" element={<ProductFormPage mode="edit" />} />
           </Route>
-          {placeholderItems.map((item) => (
-            <Route
-              key={item.path}
-              path={item.path.slice(1)}
-              element={<PlaceholderPage description={item.description} icon={item.icon} title={item.label} />}
-            />
-          ))}
+          <Route path="receipts" element={<OperationListPage type="RECEIPT" />} />
+          <Route path="deliveries" element={<OperationListPage type="DELIVERY" />} />
+          <Route path="transfers" element={<OperationListPage type="TRANSFER" />} />
+          <Route path="adjustments" element={<OperationListPage type="ADJUSTMENT" />} />
+          <Route path="ledger" element={<LedgerPage />} />
           <Route path="*" element={<Navigate replace to="/dashboard" />} />
         </Route>
       </Routes>

@@ -2006,3 +2006,234 @@ a:focus:not(:focus-visible) {
 .product-profile__top > div > span:last-child {
   overflow-wrap: anywhere;
 }
+
+/* Inventory operations and ledger */
+.activity-filter-panel {
+  margin-bottom: 16px;
+  padding: 15px;
+}
+
+.activity-filters,
+.ledger-filters {
+  display: grid;
+  align-items: end;
+  gap: 12px;
+}
+
+.activity-filters {
+  grid-template-columns: minmax(260px, 1fr) minmax(180px, 0.35fr) auto;
+}
+
+.ledger-filters {
+  grid-template-columns: minmax(240px, 1fr) 170px 145px 145px auto;
+}
+
+.product-filter-control input {
+  width: 100%;
+  height: 42px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink-950);
+  background: #fbfcfc;
+  font-size: 11px;
+}
+
+.activity-results {
+  overflow: hidden;
+}
+
+.activity-table,
+.ledger-table {
+  min-width: 980px;
+}
+
+.activity-table td,
+.ledger-table td {
+  height: 67px;
+  line-height: 1.4;
+}
+
+.activity-table td > time,
+.ledger-table td > time {
+  color: var(--ink-700);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.activity-type {
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: 6px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.activity-type--receipt { color: #126b49; background: #e8f7ef; }
+.activity-type--delivery { color: #3f63c6; background: #edf1ff; }
+.activity-type--transfer { color: #7651b5; background: #f1ebfb; }
+.activity-type--adjustment { color: #9b6814; background: #fff5df; }
+.status-badge--done { color: #126644; background: #e6f7ee; }
+.status-badge--draft { color: #96600d; background: var(--warning-soft); }
+.status-badge--canceled { color: var(--ink-600); background: #edf1ef; }
+
+.activity-card-list {
+  display: none;
+}
+
+.activity-card {
+  padding: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.activity-card:first-child {
+  border-top: 0;
+}
+
+.activity-card__header,
+.activity-card__header > div,
+.activity-card__footer {
+  display: flex;
+  align-items: center;
+}
+
+.activity-card__header {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.activity-card__header > div {
+  min-width: 0;
+  gap: 8px;
+}
+
+.activity-card__header strong {
+  overflow: hidden;
+  color: var(--ink-950);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-card__route,
+.activity-card__products {
+  margin-top: 13px;
+  padding: 11px;
+  border-radius: 8px;
+  background: #f8faf9;
+}
+
+.activity-card__route {
+  color: var(--ink-700);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.activity-card__products {
+  display: grid;
+  gap: 3px;
+}
+
+.activity-card__products strong {
+  color: var(--ink-950);
+  font-size: 10px;
+}
+
+.activity-card__products span,
+.activity-card__footer,
+.activity-card p {
+  color: var(--ink-500);
+  font-size: 9px;
+}
+
+.activity-card p {
+  margin: 11px 0 0;
+  line-height: 1.5;
+}
+
+.activity-card__footer {
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 13px;
+}
+
+.activity-empty {
+  min-height: 280px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  padding: 36px 20px;
+  color: var(--ink-500);
+  text-align: center;
+}
+
+.activity-empty h3 {
+  margin: 12px 0 4px;
+  color: var(--ink-950);
+  font-size: 16px;
+}
+
+.activity-empty p {
+  margin: 0 0 16px;
+  font-size: 11px;
+}
+
+.ledger-quantity {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.ledger-quantity--positive { color: var(--brand-600) !important; }
+.ledger-quantity--negative { color: var(--danger) !important; }
+
+.ledger-card .activity-card__products {
+  margin-bottom: 0;
+}
+
+@media (max-width: 1100px) {
+  .ledger-filters {
+    grid-template-columns: minmax(240px, 1fr) 170px 145px 145px;
+  }
+
+  .ledger-filters > .button {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+}
+
+@media (max-width: 700px) {
+  .activity-filters,
+  .ledger-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .ledger-filters > .button {
+    grid-column: auto;
+    justify-self: stretch;
+  }
+
+  .activity-table-wrap {
+    display: none;
+  }
+
+  .activity-card-list {
+    display: block;
+  }
+}
+
+@media (max-width: 520px) {
+  .activity-filter-panel {
+    padding: 12px;
+  }
+
+  .activity-card__footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

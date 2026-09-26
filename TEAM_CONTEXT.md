@@ -66,17 +66,17 @@ Developer 1 must treat `INVENTORY_CONFLICT` as retryable and refresh the operati
 | `/products/new` | Add Product form using the frontend demo service |
 | `/products/:id` | Product details and per-location stock view |
 | `/products/:id/edit` | Edit Product form using the frontend demo service |
-| `/receipts` | Placeholder |
-| `/deliveries` | Placeholder |
-| `/transfers` | Placeholder |
-| `/adjustments` | Placeholder |
-| `/ledger` | Placeholder |
+| `/receipts` | Receipt register with reference/status filters and responsive demo records |
+| `/deliveries` | Delivery register with reference/status filters and responsive demo records |
+| `/transfers` | Internal transfer register with reference/status filters and responsive demo records |
+| `/adjustments` | Inventory adjustment register with reference/status filters and responsive demo records |
+| `/ledger` | Searchable, filterable, read-only stock movement history |
 
 The root route redirects to `/dashboard`. These are client-side frontend routes; no backend routes are implied.
 
 ## Frontend Integration Status
 
-The frontend currently makes no backend API requests. Dashboard and product pages use isolated demo adapters while integration with the implemented backend contracts is planned.
+The frontend currently makes no backend API requests. Dashboard, products, inventory operations, and ledger pages use isolated demo adapters while integration with the implemented backend contracts is planned.
 
 For future dashboard integration, the frontend needs an agreed contract providing:
 
@@ -179,6 +179,8 @@ Dashboard demo data is centralized in `src/data/dashboardDemoData.ts` and expose
 Product catalogue demo data is centralized in `src/data/productDemoData.ts` and owned at runtime by the frontend-only adapter in `src/services/productService.ts`. Add/edit changes persist in versioned `sessionStorage` for the current browser tab. Product pages consume the adapter through `src/hooks/useProducts.ts`, `src/hooks/useProduct.ts`, and `src/hooks/useProductEditor.ts`; no fake API endpoint is used.
 
 The frontend product form intentionally does not edit current or initial stock. Stock remains read-only and must eventually use receipt/adjustment workflows so ledger integrity is preserved. The optional product description shown in the demo UI is not present in the current backend product contract and requires team agreement before backend integration.
+
+Inventory operation and ledger demo records are centralized in `src/data/inventoryActivityDemoData.ts` and exposed through `src/services/inventoryActivityService.ts`. The four operation registers and read-only ledger mirror documented operation types, statuses, locations, signed decimal quantities, and filters without making API calls or changing stock.
 
 ## Shared Backend Infrastructure
 
