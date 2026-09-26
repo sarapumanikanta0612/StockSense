@@ -1,0 +1,42 @@
+{
+  "name": "stocksense-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "StockSense backend API",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test --test-concurrency=1 tests/*.test.ts",
+    "prisma:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:check": "tsx src/scripts/check-database.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "6.12.0",
+    "bcryptjs": "3.0.3",
+    "cors": "2.8.6",
+    "dotenv": "18.0.4",
+    "express": "5.2.1",
+    "helmet": "8.3.0",
+    "jsonwebtoken": "9.0.3",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/cors": "2.8.19",
+    "@types/express": "5.0.6",
+    "@types/jsonwebtoken": "9.0.10",
+    "@types/node": "26.6.3",
+    "@types/supertest": "7.2.1",
+    "prisma": "6.12.0",
+    "supertest": "7.3.0",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  }
+}
