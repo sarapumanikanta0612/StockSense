@@ -17,7 +17,7 @@ Initial setup completed.
 
 README created.
 
-Application features NOT IMPLEMENTED yet.
+Backend foundation is in progress on the `backend` branch. Frontend and AI features have not been implemented.
 
 ## Current Work
 
@@ -28,39 +28,54 @@ Application features NOT IMPLEMENTED yet.
 
 ## Backend Status
 
-Implementation is in progress on the `backend` branch.
-
-Approved foundation:
+Implemented foundation:
 
 - Node.js 24 with TypeScript and Express
-- PostgreSQL with Prisma
-- JWT Bearer authentication with securely hashed passwords
+- PostgreSQL with Prisma 6.12
+- Validated environment configuration
 - JSON APIs under `/api/v1`
-- Centralized API responses and error handling
+- Centralized success responses and error handling
+- Health/database connectivity endpoint
+- JWT Bearer authentication architecture with securely hashed passwords
 - One central inventory service for every stock change
 - Immutable stock movements with transactional per-location balances
 
-Password reset is deferred. API contracts will be added only after their implementations are validated.
+Password reset is deferred. Inventory and authentication APIs are still in progress.
 
 ## Routes
 
-Not implemented yet.
+- `GET /api/v1/health` — API and database health check
+
+Additional routes are not available yet.
 
 ## APIs
 
-Not implemented yet.
+Only the health endpoint is currently available. Full contracts will be recorded here after implementation and validation.
 
 ## Database
 
-Not implemented yet.
+The initial PostgreSQL schema and migration define:
+
+- Users and roles
+- Product categories and products
+- Warehouses and locations
+- One stock balance per product/location
+- Unified inventory documents and items for receipts, deliveries, transfers, and adjustments
+- Immutable stock movements linked to their originating operation and operator
+
+Database constraints prevent negative balances, invalid movement shapes, duplicate products in one document, and duplicate client references per operation type. The migration has not been applied locally because database credentials have not been provided.
 
 ## Shared Components
 
-Not implemented yet.
+- Environment validation
+- Prisma client
+- Consistent JSON success/error envelopes
+- Centralized error handling
+- Security and CORS middleware
 
 ## Architecture Decisions
 
-To be decided by the team.
+Approved backend decisions are documented in [`.kiro/steering/architecture.md`](.kiro/steering/architecture.md). Frontend and AI architecture remain team decisions.
 
 ## Important Rules
 
