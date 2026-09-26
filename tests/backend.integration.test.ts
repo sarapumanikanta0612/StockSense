@@ -33,6 +33,7 @@ test(
 
       let token = "";
       let productId = "";
+      let warehouseId = "";
       let sourceLocationId = "";
       let destinationLocationId = "";
       let receiptId = "";
@@ -83,6 +84,7 @@ test(
           .set("Authorization", `Bearer ${token}`)
           .send({ name: "Main Warehouse" });
         assert.equal(warehouse.status, 201);
+        warehouseId = warehouse.body.data.id;
 
         const source = await request(app)
           .post(`/api/v1/warehouses/${warehouse.body.data.id}/locations`)
@@ -329,6 +331,235 @@ test(
           .set("Authorization", `Bearer ${token}`);
         assert.equal(rejectedTransfer.status, 409);
         assert.equal(rejectedTransfer.body.error.code, "INSUFFICIENT_STOCK");
+      });
+
+      await context.test("adjustments support positive stock and roll back an excessive reduction", async () => {
+        const positiveAdjustment = await request(app)
+          .post("/api/v1/adjustments")
+          .set("Authorization", `Bearer ${token}`)
+          .send({
+            locationId: destinationLocationId,
+            reason: "Recovered usable material",
+            items: [{ productId, quantity: "5" }],
+          });
+        const positiveResult = await request(app)
+          .post(`/api/v1/adjustments/${positiveAdjustment.body.data.id}/validate`)
+          .set("Authorization", `Bearer ${token}`);
+        assert.equal(positiveResult.status, 200);
+        assert.equal(positiveResult.body.data.movements[0].quantity, "5.000");
+
+        const excessiveAdjustment = await request(app)
+          .post("/api/v1/adjustments")
+          .set("Authorization", `Bearer ${token}`)
+          .send({
+            locationId: destinationLocationId,
+            reason: "Invalid excessive count correction",
+            items: [{ productId, quantity: "-1000" }],
+          });
+        const rejected = await request(app)
+          .post(`/api/v1/adjustments/${excessiveAdjustment.body.data.id}/validate`)
+          .set("Authorization", `Bearer ${token}`);
+        assert.equal(rejected.status, 409);
+        assert.equal(rejected.body.error.code, "INSUFFICIENT_STOCK");
+
+        const unchangedDraft = await request(app)
+          .get(`/api/v1/adjustments/${excessiveAdjustment.body.data.id}`)
+          .set("Authorization", `Bearer ${token}`);
+        assert.equal(unchangedDraft.body.data.status, "DRAFT");
+        assert.equal(unchangedDraft.body.data.movements.length, 0);
+
+        const balance = await prisma.stockBalance.findUniqueOrThrow({
+          where: { productId_locationId: { productId, locationId: destinationLocationId } },
+        });
+        assert.equal(balance.quantity.toFixed(3), "30.000");
+      });
+
+      await context.test("a failed multi-line delivery rolls back every balance and movement", async () => {
+        const secondProduct = await request(app)
+          .post("/api/v1/products")
+          .set("Authorization", `Bearer ${token}`)
+          .send({ name: "Copper Wire", sku: "COPPER-001", unitOfMeasure: "kg" });
+        assert.equal(secondProduct.status, 201);
+        const secondProductId = secondProduct.body.data.id as string;
+
+        const seedReceipt = await request(app)
+          .post("/api/v1/receipts")
+          .set("Authorization", `Bearer ${token}`)
+          .send({
+            destinationLocationId: sourceLocationId,
+            items: [{ productId: secondProductId, quantity: "10" }],
+          });
+        const seeded = await request(app)
+          .post(`/api/v1/receipts/${seedReceipt.body.data.id}/validate`)
+          .set("Authorization", `Bearer ${token}`);
+        assert.equal(seeded.status, 200);
+
+        const before = await prisma.stockBalance.findMany({
+          where: { locationId: sourceLocationId, productId: { in: [productId, secondProductId] } },
+          orderBy: { productId: "asc" },
+        });
+
+        const delivery = await request(app)
+          .post("/api/v1/deliveries")
+          .set("Authorization", `Bearer ${token}`)
+          .send({
+            sourceLocationId,
+            items: [
+              { productId, quantity: "1" },
+              { productId: secondProductId, quantity: "999" },
+            ],
+          });
+        const rejected = await request(app)
+          .post(`/api/v1/deliveries/${delivery.body.data.id}/validate`)
+          .set("Authorization", `Bearer ${token}`);
+        assert.equal(rejected.status, 409);
+        assert.equal(rejected.body.error.code, "INSUFFICIENT_STOCK");
+
+        const after = await prisma.stockBalance.findMany({
+          where: { locationId: sourceLocationId, productId: { in: [productId, secondProductId] } },
+          orderBy: { productId: "asc" },
+        });
+        assert.deepEqual(
+          after.map((balance) => [balance.productId, balance.quantity.toFixed(3)]),
+          before.map((balance) => [balance.productId, balance.quantity.toFixed(3)]),
+        );
+
+        const unchangedDraft = await request(app)
+          .get(`/api/v1/deliveries/${delivery.body.data.id}`)
+          .set("Authorization", `Bearer ${token}`);
+        assert.equal(unchangedDraft.body.data.status, "DRAFT");
+        assert.equal(unchangedDraft.body.data.movements.length, 0);
+      });
+
+      await context.test("posting rechecks active products and locations inside the transaction", async () => {
+        const productDraft = await request(app)
+          .post("/api/v1/receipts")
+          .set("Authorization", `Bearer ${token}`)
+          .send({
+            destinationLocationId: sourceLocationId,
+            items: [{ productId, quantity: "1" }],
+          });
+
+        await request(app)
+          .patch(`/api/v1/products/${productId}`)
+          .set("Authorization", `Bearer ${token}`)
+          .send({ isActive: false })
+          .expect(200);
+        const inactiveProductResult = await request(app)
+          .post(`/api/v1/receipts/${productDraft.body.data.id}/validate`)
+          .set("Authorization", `Bearer ${token}`);
+        assert.equal(inactiveProductResult.status, 422);
+        assert.equal(inactiveProductResult.body.error.code, "INVALID_PRODUCT");
+        await request(app)
+          .patch(`/api/v1/products/${productId}`)
+          .set("Authorization", `Bearer ${token}`)
+          .send({ isActive: true })
+          .expect(200);
+
+        const locationDraft = await request(app)
+          .post("/api/v1/receipts")
+          .set("Authorization", `Bearer ${token}`)
+          .send({
+            destinationLocationId,
+            items: [{ productId, quantity: "1" }],
+          });
+        await request(app)
+          .patch(`/api/v1/locations/${destinationLocationId}`)
+          .set("Authorization", `Bearer ${token}`)
+          .send({ isActive: false })
+          .expect(200);
+        const inactiveLocationResult = await request(app)
+          .post(`/api/v1/receipts/${locationDraft.body.data.id}/validate`)
+          .set("Authorization", `Bearer ${token}`);
+        assert.equal(inactiveLocationResult.status, 422);
+        assert.equal(inactiveLocationResult.body.error.code, "INVALID_LOCATION");
+        await request(app)
+          .patch(`/api/v1/locations/${destinationLocationId}`)
+          .set("Authorization", `Bearer ${token}`)
+          .send({ isActive: true })
+          .expect(200);
+
+        const warehouseDraft = await request(app)
+          .post("/api/v1/deliveries")
+          .set("Authorization", `Bearer ${token}`)
+          .send({
+            sourceLocationId,
+            items: [{ productId, quantity: "1" }],
+          });
+        await request(app)
+          .patch(`/api/v1/warehouses/${warehouseId}`)
+          .set("Authorization", `Bearer ${token}`)
+          .send({ isActive: false })
+          .expect(200);
+        const inactiveWarehouseResult = await request(app)
+          .post(`/api/v1/deliveries/${warehouseDraft.body.data.id}/validate`)
+          .set("Authorization", `Bearer ${token}`);
+        assert.equal(inactiveWarehouseResult.status, 422);
+        assert.equal(inactiveWarehouseResult.body.error.code, "INVALID_LOCATION");
+        await request(app)
+          .patch(`/api/v1/warehouses/${warehouseId}`)
+          .set("Authorization", `Bearer ${token}`)
+          .send({ isActive: true })
+          .expect(200);
+
+        for (const draftId of [
+          productDraft.body.data.id,
+          locationDraft.body.data.id,
+          warehouseDraft.body.data.id,
+        ]) {
+          const draft = await prisma.inventoryDocument.findUniqueOrThrow({
+            where: { id: draftId },
+            include: { movements: true },
+          });
+          assert.equal(draft.status, "DRAFT");
+          assert.equal(draft.movements.length, 0);
+        }
+      });
+
+      await context.test("cancellation and concurrent validation never post stock twice", async () => {
+        const canceledReceipt = await request(app)
+          .post("/api/v1/receipts")
+          .set("Authorization", `Bearer ${token}`)
+          .send({
+            destinationLocationId: sourceLocationId,
+            items: [{ productId, quantity: "1" }],
+          });
+        const canceled = await request(app)
+          .post(`/api/v1/receipts/${canceledReceipt.body.data.id}/cancel`)
+          .set("Authorization", `Bearer ${token}`);
+        assert.equal(canceled.status, 200);
+        assert.equal(canceled.body.data.status, "CANCELED");
+        const canceledValidation = await request(app)
+          .post(`/api/v1/receipts/${canceledReceipt.body.data.id}/validate`)
+          .set("Authorization", `Bearer ${token}`);
+        assert.equal(canceledValidation.status, 409);
+
+        const concurrentReceipt = await request(app)
+          .post("/api/v1/receipts")
+          .set("Authorization", `Bearer ${token}`)
+          .send({
+            destinationLocationId: sourceLocationId,
+            items: [{ productId, quantity: "1" }],
+          });
+        const results = await Promise.all([
+          request(app)
+            .post(`/api/v1/receipts/${concurrentReceipt.body.data.id}/validate`)
+            .set("Authorization", `Bearer ${token}`),
+          request(app)
+            .post(`/api/v1/receipts/${concurrentReceipt.body.data.id}/validate`)
+            .set("Authorization", `Bearer ${token}`),
+        ]);
+        assert.deepEqual(
+          results.map((result) => result.status).sort(),
+          [200, 409],
+        );
+
+        const completed = await request(app)
+          .get(`/api/v1/receipts/${concurrentReceipt.body.data.id}`)
+          .set("Authorization", `Bearer ${token}`);
+        assert.equal(completed.body.data.status, "DONE");
+        assert.equal(completed.body.data.movements.length, 1);
+        assert.equal(completed.body.data.movements[0].quantity, "1.000");
       });
     } finally {
       await resetDatabase();
