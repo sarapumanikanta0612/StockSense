@@ -40,7 +40,7 @@ Implemented foundation:
 - One central inventory service for every stock change
 - Immutable stock movements with transactional per-location balances
 
-Password reset is deferred. Inventory and authentication APIs are still in progress.
+Password reset is deferred. Authentication, catalog, warehouse/location, stock query, and inventory operation APIs are implemented. Database-backed integration validation still requires a local `DATABASE_URL`.
 
 ## Routes
 
@@ -62,14 +62,20 @@ Bearer token required:
 - `GET /api/v1/locations`
 - `GET|PATCH /api/v1/locations/:id`
 - `GET /api/v1/stock`
+- `POST|GET /api/v1/{receipts|deliveries|transfers|adjustments}`
+- `GET /api/v1/{operation}/:id`
+- `POST /api/v1/{operation}/:id/validate`
+- `POST /api/v1/{operation}/:id/cancel`
 
-Inventory operation and ledger routes are still in progress.
+The stock-ledger route is still in progress.
 
 ## APIs
 
 Authentication uses JWT Bearer tokens. Send protected requests with `Authorization: Bearer <accessToken>`. Public registration cannot assign elevated roles. Passwords are hashed with bcrypt and never returned.
 
-Product responses include total stock and per-location balances. Stock is read-only through product and stock routes; these APIs never modify balances. Use SKU/name search and category/status filters on product lists. Use product, location, warehouse, search, and low-stock filters on stock lists. Full request/response/error contracts will be recorded after all backend APIs are validated.
+Product responses include total stock and per-location balances. Stock is read-only through product and stock routes; these APIs never modify balances. Use SKU/name search and category/status filters on product lists. Use product, location, warehouse, search, and low-stock filters on stock lists.
+
+Inventory operations are two-step: create a `DRAFT`, then call its `/validate` endpoint. Validation is the only action that changes stock. It atomically claims the draft, updates balances through the central inventory service, creates immutable movements, and marks the operation `DONE`. Re-validation is rejected with `OPERATION_ALREADY_PROCESSED`; insufficient delivery/transfer/negative-adjustment stock is rejected with `INSUFFICIENT_STOCK`. Drafts can be canceled without changing stock. Full request/response/error contracts will be recorded after all backend APIs are validated.
 
 ## Database
 

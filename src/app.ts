@@ -8,6 +8,12 @@ import { notFound } from "./middleware/not-found.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 import { stockRouter } from "./modules/inventory/stock.routes.js";
+import {
+  adjustmentRouter,
+  deliveryRouter,
+  receiptRouter,
+  transferRouter,
+} from "./modules/operations/operation.routes.js";
 import { categoryRouter, productRouter } from "./modules/products/product.routes.js";
 import { locationRouter, warehouseRouter } from "./modules/warehouses/warehouse.routes.js";
 
@@ -27,6 +33,10 @@ app.use("/api/v1/categories", authenticate, categoryRouter);
 app.use("/api/v1/warehouses", authenticate, warehouseRouter);
 app.use("/api/v1/locations", authenticate, locationRouter);
 app.use("/api/v1/stock", authenticate, stockRouter);
+app.use("/api/v1/receipts", authenticate, receiptRouter);
+app.use("/api/v1/deliveries", authenticate, deliveryRouter);
+app.use("/api/v1/transfers", authenticate, transferRouter);
+app.use("/api/v1/adjustments", authenticate, adjustmentRouter);
 
 app.use(notFound);
 app.use(errorHandler);
