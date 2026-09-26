@@ -21,6 +21,12 @@ export type IconName =
   | 'warehouse'
   | 'activity'
   | 'chevronRight'
+  | 'plus'
+  | 'edit'
+  | 'eye'
+  | 'arrowLeft'
+  | 'save'
+  | 'filter'
 
 const iconPaths: Record<IconName, string[]> = {
   dashboard: ['M3 3h7v7H3z', 'M14 3h7v5h-7z', 'M14 12h7v9h-7z', 'M3 14h7v7H3z'],
@@ -43,6 +49,12 @@ const iconPaths: Record<IconName, string[]> = {
   warehouse: ['M3 10 12 3l9 7v11H3z', 'M7 21v-7h10v7', 'M7 10h.01', 'M12 10h.01', 'M17 10h.01'],
   activity: ['M3 12h4l2-6 4 12 2-6h6'],
   chevronRight: ['m9 18 6-6-6-6'],
+  plus: ['M12 5v14', 'M5 12h14'],
+  edit: ['M4 20h4l11-11-4-4L4 16z', 'm13-13 4 4'],
+  eye: ['M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6'],
+  arrowLeft: ['M19 12H5', 'm11 18-6-6 6-6'],
+  save: ['M5 3h12l2 2v16H5z', 'M8 3v6h8V3', 'M8 21v-7h8v7'],
+  filter: ['M4 5h16l-6 7v6l-4 2v-8z'],
 }
 
 interface IconProps extends SVGProps<SVGSVGElement> {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Header } from '../components/navigation/Header'
 import { Sidebar } from '../components/navigation/Sidebar'
-import { navigationItems } from '../config/navigation'
+import { findNavigationItem } from '../config/navigation'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 
 export function AppShell() {
@@ -24,7 +24,7 @@ export function AppShell() {
 
   useEffect(() => {
     setIsNavigationOpen(false)
-    const activeItem = navigationItems.find((item) => item.path === location.pathname)
+    const activeItem = findNavigationItem(location.pathname)
     document.title = `${activeItem?.label ?? 'StockSense'} · StockSense`
   }, [location.pathname])
 

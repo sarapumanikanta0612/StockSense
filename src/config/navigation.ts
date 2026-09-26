@@ -51,3 +51,9 @@ export const navigationItems: NavigationItem[] = [
     description: 'Explore the inventory movement history.',
   },
 ]
+
+export function findNavigationItem(pathname: string) {
+  return navigationItems.find(
+    (item) => pathname === item.path || pathname.startsWith(`${item.path}/`),
+  )
+}

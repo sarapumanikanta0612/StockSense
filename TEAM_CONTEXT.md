@@ -19,7 +19,7 @@ The frontend foundation and initial dashboard UI are implemented on the `fronten
 
 ## Current Work
 
-- Developer 1: React frontend foundation, application shell, navigation, dashboard UI, and workflow placeholders implemented
+- Developer 1: React frontend foundation, application shell, dashboard UI, and complete frontend-only Product Management experience implemented
 - Developer 2: Not started
 - Developer 3: Backend foundation complete — ready for team integration
 - Developer 4: Not started
@@ -49,7 +49,10 @@ The frontend foundation and initial dashboard UI are implemented on the `fronten
 | Route | Current UI status |
 | --- | --- |
 | `/dashboard` | Initial dashboard implemented with demo data |
-| `/products` | Placeholder |
+| `/products` | Product catalogue with search and stock/category filters |
+| `/products/new` | Add Product form using the frontend demo service |
+| `/products/:id` | Product details and per-location stock view |
+| `/products/:id/edit` | Edit Product form using the frontend demo service |
 | `/receipts` | Placeholder |
 | `/deliveries` | Placeholder |
 | `/transfers` | Placeholder |
@@ -60,7 +63,7 @@ The root route redirects to `/dashboard`. These are client-side frontend routes;
 
 ## Frontend Integration Status
 
-The frontend currently makes no backend API requests. It uses an isolated demo adapter while integration with the implemented backend contracts is planned.
+The frontend currently makes no backend API requests. Dashboard and product pages use isolated demo adapters while integration with the implemented backend contracts is planned.
 
 For future dashboard integration, the frontend needs an agreed contract providing:
 
@@ -150,10 +153,19 @@ Database constraints prevent negative balances, invalid movement shapes, duplica
 - `StockOverview`
 - `LowStockTable`
 - `MovementList`
+- `ProductFilters`
+- `ProductTable`
+- `ProductStatusBadge`
+- `ProductEmptyState`
+- `ProductForm`
 
 ## Frontend Demo Data
 
-Dashboard demo data is centralized in `src/data/dashboardDemoData.ts`. It is exposed to the UI through the frontend-only adapter in `src/services/dashboardService.ts` and does not call or represent a fake backend API.
+Dashboard demo data is centralized in `src/data/dashboardDemoData.ts` and exposed through `src/services/dashboardService.ts`.
+
+Product catalogue demo data is centralized in `src/data/productDemoData.ts` and owned at runtime by the frontend-only adapter in `src/services/productService.ts`. Add/edit changes persist in versioned `sessionStorage` for the current browser tab. Product pages consume the adapter through `src/hooks/useProducts.ts`, `src/hooks/useProduct.ts`, and `src/hooks/useProductEditor.ts`; no fake API endpoint is used.
+
+The frontend product form intentionally does not edit current or initial stock. Stock remains read-only and must eventually use receipt/adjustment workflows so ledger integrity is preserved. The optional product description shown in the demo UI is not present in the current backend product contract and requires team agreement before backend integration.
 
 ## Shared Backend Infrastructure
 

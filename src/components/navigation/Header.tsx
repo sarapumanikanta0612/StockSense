@@ -1,6 +1,6 @@
 import type { RefObject } from 'react'
 import { useLocation } from 'react-router-dom'
-import { navigationItems } from '../../config/navigation'
+import { findNavigationItem } from '../../config/navigation'
 import { Icon } from '../ui/Icon'
 
 interface HeaderProps {
@@ -11,7 +11,7 @@ interface HeaderProps {
 
 export function Header({ isNavigationOpen, menuButtonRef, onOpenNavigation }: HeaderProps) {
   const { pathname } = useLocation()
-  const activeItem = navigationItems.find((item) => item.path === pathname)
+  const activeItem = findNavigationItem(pathname)
 
   return (
     <header className="top-header">
