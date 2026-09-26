@@ -24,7 +24,7 @@ Backend foundation is implemented and validated on the `backend` branch. Fronten
 - Developer 1: Not started
 - Developer 2: Not started
 - Developer 3: Backend foundation complete — ready for team integration
-- Developer 4: Not started
+- Developer 4: Smart Inventory analytics + low-stock intelligence implemented on branch `dev4-smart-features` (read-only, additive)
 
 ## Backend Status
 
@@ -190,3 +190,69 @@ Operation responses include type, status, optional reference/reason, source/dest
 | GET | `/api/v1/ledger` | Search immutable stock movement history | Query: `page?`, `limit?`, `type?`, `productId?`, `locationId?`, `warehouseId?`, `documentId?`, `performedById?`, `search?`, `from?`, `to?`; dates are ISO timestamps | Movements with product, source/destination, operation reference, operator, timestamp + pagination | Validation errors |
 
 No create, update, or delete ledger endpoint exists. Movements are written only by successful central inventory-service validation.
+
+### Smart features (analytics) — Developer 4
+
+All analytics endpoints require a Bearer token and are strictly **read-only**: they never create movements or change stock balances. They only aggregate the existing data produced by Developer 2/3's central inventory service. Mounted under `/api/v1/analytics`.
+
+Shared query parameters: `windowDays?` (default `30`, max `365` — how far back movement trends look), `warehouseId?` (scope every insight to one warehouse), `limit?` (default `5`, max `50` — size of each ranked list).
+
+| Method | Path | Purpose | Response data |
+| --- | --- | --- | --- |
+| GET | `/api/v1/analytics/insights` | Full smart-inventory bundle | `{ window, summary, alerts, analytics }` |
+| GET | `/api/v1/analytics/low-stock` | Focused low-stock alert feed | `{ window, summary, alerts }` |
+| GET | `/api/v1/analytics/ai-insight` | Human-readable StockSense AI Insight | `{ window, summary, insight }` |
+
+- `summary`: `{ trackedProducts, outOfStock, lowStock, approachingReorder, healthy, attentionRatio }`.
+- `alerts`: `{ outOfStock[], lowStock[], approaching[] }`. Each product entry: `{ productId, name, sku, unitOfMeasure, totalQuantity, reorderLevel, status, consumedInWindow, averageDailyConsumption, daysOfCover }`. `status` is `OUT_OF_STOCK | LOW_STOCK | APPROACHING | HEALTHY`. `daysOfCover` is `null` when there is no measured consumption.
+- `analytics`: `{ fastMovers[], slowMovers[], reorderAttention[], recentActivity }`. `recentActivity` counts movements by type over the window: `{ RECEIPT, DELIVERY, TRANSFER, ADJUSTMENT }`.
+- `insight` (ai-insight only): `{ source: "ai" | "rule-based", headline, messages[] }`.
+
+Classification rules: `OUT_OF_STOCK` = on-hand ≤ 0; `LOW_STOCK` = on-hand ≤ reorder level; `APPROACHING` = on-hand within 25% above reorder level; otherwise `HEALTHY`. A reorder level of 0 is treated as never-low. "Consumption" is the absolute quantity of `DELIVERY` movements in the window (deliveries are stored negative). Fast movers rank by consumption; slow movers are in-stock products with zero consumption; reorder attention ranks actively-consumed products by ascending `daysOfCover`.
+
+## Developer 4 — Smart Features
+
+### Completed
+
+- Read-only Smart Inventory Service (`src/modules/analytics/analytics.service.ts`) aggregating real `StockBalance`, `Product.reorderLevel`, and `StockMovement` data into low-stock detection, alerts, and analytics.
+- Low-stock intelligence: out-of-stock / low-stock / approaching-reorder detection with a shared classifier.
+- Inventory analytics: fast movers, slow movers, reorder-attention (days-of-cover), and recent movement activity by type.
+- StockSense AI Insight layer (`insight-ai.service.ts`): converts the structured bundle into a short human-readable narrative. Uses an optional OpenAI-compatible LLM and always falls back to a deterministic rule-based summary. Strictly read-only; the model is never allowed to change stock.
+- Three endpoints under `/api/v1/analytics` (`insights`, `low-stock`, `ai-insight`), mounted behind the shared `authenticate` middleware.
+- Unit tests in `tests/analytics-insights.test.ts` (classifier, query schema, rule-based narrative). Typecheck clean; full suite green (integration test still skips without `TEST_DATABASE_URL`).
+
+### In Progress
+
+- None. This task is complete and stops here per scope.
+
+### APIs Used
+
+- Reads Prisma models owned by Developer 3's backend: `StockBalance`, `Product`, `StockMovement`, `Location`, `Warehouse`. Read-only via the shared Prisma client. No existing API or model was modified.
+
+### APIs Needed
+
+- None required to function. The module reads the database directly through the shared Prisma client, consistent with the existing `stock`/`ledger` services. No new backend API or schema change is requested from other developers.
+
+### Data Dependencies
+
+- Insight quality depends on real data volume: `StockMovement` history (especially `DELIVERY` movements) drives consumption, days-of-cover, and fast/slow-mover analytics. With little/no history, alerts still work (based on balances vs reorder level) but trend analytics will be sparse. No numbers are invented.
+- `Product.reorderLevel` must be set meaningfully for low-stock/approaching detection to be useful.
+
+### Integration Notes (for Developer 1 — Frontend)
+
+- Recommended dashboard wiring: `GET /api/v1/analytics/insights` for the KPI cards + alert lists, and `GET /api/v1/analytics/ai-insight` for a "StockSense AI Insight" panel. Send `Authorization: Bearer <accessToken>`.
+- Keep business logic out of UI components — consume these endpoints directly; all computation lives in the Smart Inventory Service.
+
+### DEPENDENCY (optional, for Developer 3 — deployment/config)
+
+- **What I need:** three optional environment variables — `AI_API_KEY`, `AI_BASE_URL` (default `https://api.openai.com/v1`), `AI_MODEL` (default `gpt-4o-mini`) — added to `src/config/env.ts` as optional.
+- **Reason:** enables the LLM-backed narrative for `/api/v1/analytics/ai-insight`.
+- **Expected input:** an OpenAI-compatible chat-completions API key/base URL.
+- **Expected output:** a short natural-language insight string.
+- **Note:** entirely optional. When `AI_API_KEY` is unset the endpoint returns the deterministic rule-based narrative, so nothing breaks without AI configuration. Please add these keys to any shared `.env.example`/deployment config if the team wants live AI at the demo.
+
+### Known Issues
+
+- LLM path is best-effort: on timeout (10s), network error, or non-200 response it silently falls back to the rule-based narrative (by design, for demo reliability). Not yet covered by an automated live-LLM test.
+- `buildInsights` loads current balances into memory and aggregates in the service layer (mirrors the existing `stock` service approach). Fine for hackathon-scale data; would need query-side aggregation at large scale.
+- Analytics endpoints are not yet exercised by a DB-backed integration test (the shared integration test still requires `TEST_DATABASE_URL`).

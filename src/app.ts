@@ -5,6 +5,7 @@ import { env } from "./config/env.js";
 import { authenticate } from "./middleware/authenticate.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { notFound } from "./middleware/not-found.js";
+import { analyticsRouter } from "./modules/analytics/analytics.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 import { stockRouter } from "./modules/inventory/stock.routes.js";
@@ -39,6 +40,7 @@ app.use("/api/v1/receipts", authenticate, receiptRouter);
 app.use("/api/v1/deliveries", authenticate, deliveryRouter);
 app.use("/api/v1/transfers", authenticate, transferRouter);
 app.use("/api/v1/adjustments", authenticate, adjustmentRouter);
+app.use("/api/v1/analytics", authenticate, analyticsRouter);
 
 app.use(notFound);
 app.use(errorHandler);
