@@ -61,7 +61,14 @@ The dashboard surfaces these key performance indicators:
 
 ## Technology Stack
 
-To be finalized by the team.
+The approved frontend stack is:
+
+- React
+- TypeScript
+- Vite
+- React Router DOM for client-side routes
+
+Backend, database, authentication, inventory-logic, and AI technology decisions remain owned by their assigned developers.
 
 ## Team
 
@@ -76,6 +83,17 @@ To be finalized by the team.
 
 This project is being developed collaboratively using GitHub and Kiro.
 
+Frontend commands:
+
+```bash
+npm install
+npm run dev
+npm run typecheck
+npm run build
+```
+
+The frontend currently uses centralized demo data and does not define or call fake backend APIs.
+
 ## Project Status
 
-Initial project setup.
+The frontend foundation, responsive application shell, workflow navigation, and initial inventory dashboard UI are implemented on the `frontend` branch. Other feature areas are not assumed to be complete.
