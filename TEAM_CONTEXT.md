@@ -45,12 +45,15 @@ Password reset is deferred. Inventory and authentication APIs are still in progr
 ## Routes
 
 - `GET /api/v1/health` — API and database health check
+- `POST /api/v1/auth/register` — register a warehouse staff user and receive a Bearer token
+- `POST /api/v1/auth/login` — authenticate and receive a Bearer token
+- `GET /api/v1/auth/me` — return the authenticated user; Bearer token required
 
-Additional routes are not available yet.
+Additional routes are still in progress.
 
 ## APIs
 
-Only the health endpoint is currently available. Full contracts will be recorded here after implementation and validation.
+Authentication uses JWT Bearer tokens. Send protected requests with `Authorization: Bearer <accessToken>`. Public registration cannot assign elevated roles. Passwords are hashed with bcrypt and never returned. Full request/response/error contracts will be recorded after all backend APIs are validated.
 
 ## Database
 
