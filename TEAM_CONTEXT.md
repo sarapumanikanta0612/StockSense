@@ -23,8 +23,24 @@ Application features NOT IMPLEMENTED yet.
 
 - Developer 1: Not started
 - Developer 2: Not started
-- Developer 3: Not started
+- Developer 3: In progress — backend foundation
 - Developer 4: Not started
+
+## Backend Status
+
+Implementation is in progress on the `backend` branch.
+
+Approved foundation:
+
+- Node.js 24 with TypeScript and Express
+- PostgreSQL with Prisma
+- JWT Bearer authentication with securely hashed passwords
+- JSON APIs under `/api/v1`
+- Centralized API responses and error handling
+- One central inventory service for every stock change
+- Immutable stock movements with transactional per-location balances
+
+Password reset is deferred. API contracts will be added only after their implementations are validated.
 
 ## Routes
 
