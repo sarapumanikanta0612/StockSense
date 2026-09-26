@@ -17,13 +17,13 @@ Initial setup completed.
 
 README created.
 
-Backend foundation is in progress on the `backend` branch. Frontend and AI features have not been implemented.
+Backend foundation is implemented and validated on the `backend` branch. Frontend and AI features have not been implemented.
 
 ## Current Work
 
 - Developer 1: Not started
 - Developer 2: Not started
-- Developer 3: In progress — backend foundation
+- Developer 3: Backend foundation complete — ready for team integration
 - Developer 4: Not started
 
 ## Backend Status
@@ -40,7 +40,7 @@ Implemented foundation:
 - One central inventory service for every stock change
 - Immutable stock movements with transactional per-location balances
 
-Password reset is deferred. Authentication, catalog, warehouse/location, stock query, and inventory operation APIs are implemented. Database-backed integration validation still requires a local `DATABASE_URL`.
+Password reset is deferred. Authentication, catalog, warehouse/location, stock query, inventory operation, and ledger APIs are implemented. The schema migration, database connection, full inventory workflow, and compiled server startup were validated against an isolated PostgreSQL 16 database.
 
 ## Routes
 
@@ -66,7 +66,6 @@ Bearer token required:
 - `GET /api/v1/{operation}/:id`
 - `POST /api/v1/{operation}/:id/validate`
 - `POST /api/v1/{operation}/:id/cancel`
-
 - `GET /api/v1/ledger`
 
 All planned Phase 1 API route groups are implemented.
@@ -77,7 +76,7 @@ Authentication uses JWT Bearer tokens. Send protected requests with `Authorizati
 
 Product responses include total stock and per-location balances. Stock is read-only through product and stock routes; these APIs never modify balances. Use SKU/name search and category/status filters on product lists. Use product, location, warehouse, search, and low-stock filters on stock lists.
 
-Inventory operations are two-step: create a `DRAFT`, then call its `/validate` endpoint. Validation is the only action that changes stock. It atomically claims the draft, updates balances through the central inventory service, creates immutable movements, and marks the operation `DONE`. Re-validation is rejected with `OPERATION_ALREADY_PROCESSED`; insufficient delivery/transfer/negative-adjustment stock is rejected with `INSUFFICIENT_STOCK`. Drafts can be canceled without changing stock. Full request/response/error contracts will be recorded after all backend APIs are validated.
+Inventory operations are two-step: create a `DRAFT`, then call its `/validate` endpoint. Validation is the only action that changes stock. It atomically claims the draft, updates balances through the central inventory service, creates immutable movements, and marks the operation `DONE`. Re-validation is rejected with `OPERATION_ALREADY_PROCESSED`; insufficient delivery/transfer/negative-adjustment stock is rejected with `INSUFFICIENT_STOCK`. Drafts can be canceled without changing stock. Actual request, response, and error contracts are documented below.
 
 ## Database
 
@@ -90,7 +89,7 @@ The initial PostgreSQL schema and migration define:
 - Unified inventory documents and items for receipts, deliveries, transfers, and adjustments
 - Immutable stock movements linked to their originating operation and operator
 
-Database constraints prevent negative balances, invalid movement shapes, duplicate products in one document, and duplicate client references per operation type. The migration has not been applied locally because database credentials have not been provided.
+Database constraints prevent negative balances, invalid movement shapes, duplicate products in one document, and duplicate client references per operation type. The initial migration was successfully applied and tested against an isolated PostgreSQL 16 database. Each developer/deployment still needs a private `DATABASE_URL`; no credentials are committed.
 
 ## Shared Components
 
@@ -99,6 +98,15 @@ Database constraints prevent negative balances, invalid movement shapes, duplica
 - Consistent JSON success/error envelopes
 - Centralized error handling
 - Security and CORS middleware
+- Automated unit, validation, and PostgreSQL-backed integration tests
+
+## Known Limitations
+
+- OTP/password reset is deferred.
+- Role-based authorization beyond authenticated access is not implemented; all active users currently have the same API permissions.
+- Dashboard KPI aggregation endpoints and real-time push updates are not implemented.
+- Vendor and customer master data are outside the current documented scope.
+- A PostgreSQL database and private environment configuration must be provisioned for each runtime.
 
 ## Architecture Decisions
 
