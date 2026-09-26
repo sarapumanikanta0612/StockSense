@@ -22,9 +22,22 @@ Backend foundation is implemented and validated on the `backend` branch. Fronten
 ## Current Work
 
 - Developer 1: Not started
-- Developer 2: Not started
+- Developer 2: Inventory operation hardening implemented on the `inventory` branch; PostgreSQL workflow validation awaits an isolated `TEST_DATABASE_URL`
 - Developer 3: Backend foundation complete — ready for team integration
 - Developer 4: Smart Inventory analytics + low-stock intelligence implemented on branch `dev4-smart-features` (read-only, additive)
+
+## Inventory Operations Status
+
+Developer 2 extended the existing central inventory service without changing the database schema, route structure, or request DTOs:
+
+- Receipt, delivery, transfer, and adjustment validation now rechecks that every product, location, and parent warehouse is active inside the same serializable transaction that posts stock. A failed check returns `INVALID_PRODUCT` or `INVALID_LOCATION`; the document remains `DRAFT`, and no balance or movement changes persist.
+- Transient Prisma `P2034` write/serialization conflicts are retried within the inventory service up to three total attempts. If contention persists, validation returns `INVENTORY_CONFLICT` (409) with `details.retryable: true`; no partial stock change is committed.
+- Existing guarantees remain unchanged: receipt increases destination stock, delivery decreases source stock, transfer atomically moves stock without changing product-wide quantity, signed adjustment applies a location delta, negative stock is rejected, and each successfully validated item creates exactly one immutable ledger movement.
+- PostgreSQL integration coverage now includes positive and excessive negative adjustments, multi-line rollback, posting-time active-reference checks, canceled-document rejection, and concurrent exactly-once validation.
+
+Local validation completed with Prisma Client generation, TypeScript type checking, ten non-database tests, and a production build. The PostgreSQL-backed workflow test is present but was skipped locally because `TEST_DATABASE_URL` is not configured and no local PostgreSQL/Docker runtime is available.
+
+Developer 1 must treat `INVENTORY_CONFLICT` as retryable and refresh the operation before retrying validation. Developer 3 is needed before adding any richer workflow that changes persistence or shared DTOs, including vendor/customer records, pick/pack states, scheduled or in-transit transfers, physical-count sessions, cancellation audit fields, or reversals.
 
 ## Backend Status
 
@@ -178,7 +191,7 @@ All operation endpoints require a Bearer token. Creation produces a `DRAFT` and 
 | POST | `/api/v1/adjustments` | Create signed stock-adjustment draft | Body: `{ clientReference?, locationId, reason, items: [{ productId, quantity != 0 }] }` | Adjustment operation | Same as receipt |
 | GET | `/api/v1/{receipts\|deliveries\|transfers\|adjustments}` | List one operation type | Query: `page?`, `limit?`, `status?` (`DRAFT`, `DONE`, `CANCELED`), `clientReference?` | Operation array + pagination | Validation errors |
 | GET | `/api/v1/{operation}/:id` | Get one operation of the route type | Operation UUID | Operation, items, and any movements | `OPERATION_NOT_FOUND` (404) |
-| POST | `/api/v1/{operation}/:id/validate` | Apply a draft through the central inventory service | Operation UUID; no body | Completed operation and movements | `OPERATION_NOT_FOUND`, `OPERATION_ALREADY_PROCESSED` (409), `INSUFFICIENT_STOCK` (409), `INVALID_OPERATION` (422) |
+| POST | `/api/v1/{operation}/:id/validate` | Apply a draft through the central inventory service | Operation UUID; no body | Completed operation and movements | `OPERATION_NOT_FOUND` (404), `OPERATION_ALREADY_PROCESSED` (409), `INSUFFICIENT_STOCK` (409), `INVENTORY_CONFLICT` (409 with `details.retryable: true`), `INVALID_PRODUCT` (422), `INVALID_LOCATION` (422), `INVALID_OPERATION` (422) |
 | POST | `/api/v1/{operation}/:id/cancel` | Cancel a draft without stock changes | Operation UUID; no body | Canceled operation | `OPERATION_NOT_FOUND`, `OPERATION_ALREADY_PROCESSED` |
 
 Operation responses include type, status, optional reference/reason, source/destination locations, creator/validator, timestamps, product items, and movements. Delivery movement quantities are negative; receipt quantities are positive; transfers contain both locations and preserve overall quantity; adjustment movement quantities are signed.
