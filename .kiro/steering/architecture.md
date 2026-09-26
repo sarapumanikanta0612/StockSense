@@ -2,7 +2,7 @@
 
 ## Current State
 
-Initial project setup. Architecture not implemented yet.
+The React/Vite frontend foundation and Node/Express backend foundation are implemented and are being integrated. AI architecture is not defined.
 
 ## Frontend
 
@@ -10,32 +10,37 @@ React + TypeScript + Vite. React Router DOM provides client-side routing, and th
 
 ## Backend
 
-Not decided.
+- Runtime: Node.js 24 with TypeScript
+- HTTP framework: Express
+- API convention: JSON APIs under `/api/v1`
+- Shared concerns: environment-based configuration, consistent responses, and centralized error handling
 
 ## Database
 
-Not decided.
+- Database: PostgreSQL
+- ORM and migrations: Prisma
+- Stock design: immutable stock movements with transactional per-location balances
 
 ## Authentication
 
-Not decided.
+JWT Bearer tokens with securely hashed passwords. Registration, login, and protected API access are the initial scope. Password reset is deferred.
 
 ## Inventory Logic
 
-Not implemented.
+One central inventory service is the only component allowed to change stock. Receipts, deliveries, internal transfers, and adjustments must use this service.
 
 ## Stock Ledger
 
-Not implemented.
+Stock movements are immutable records created in the same database transaction as operation and location-balance changes.
 
 ## API Structure
 
-Not implemented.
+JSON endpoints use the `/api/v1` prefix. Actual endpoint contracts must be documented in `TEAM_CONTEXT.md` as they become available.
 
 ## Routes
 
-Frontend client routes are documented in `TEAM_CONTEXT.md`. Backend and API routes are not implemented.
+Frontend client routes and implemented backend API routes are documented in `TEAM_CONTEXT.md`. Frontend client routes do not imply backend endpoints; backend JSON APIs use the `/api/v1` prefix.
 
 ## Integration Rules
 
-All shared interfaces must be documented before other developers depend on them.
+All shared interfaces must be documented before other developers depend on them. API modules must not update stock balances directly; all stock-changing operations must call the central inventory service.

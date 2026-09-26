@@ -20,5 +20,17 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": [
+    "src/main.tsx",
+    "src/FrontendApp.tsx",
+    "src/vite-env.d.ts",
+    "src/components/**/*.tsx",
+    "src/config/navigation.ts",
+    "src/data/**/*.ts",
+    "src/hooks/**/*.ts",
+    "src/layouts/**/*.tsx",
+    "src/pages/**/*.tsx",
+    "src/services/**/*.ts",
+    "src/types/inventory.ts"
+  ]
 }

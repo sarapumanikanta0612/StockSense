@@ -1,13 +1,17 @@
 # Dependencies
 node_modules/
 
-# Build output
+# Build and test output
 dist/
+coverage/
 
 # Local environment files
 .env
 .env.*
 !.env.example
+
+# Generated clients
+src/generated/prisma/
 
 # Logs
 *.log
