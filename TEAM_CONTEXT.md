@@ -44,16 +44,32 @@ Password reset is deferred. Inventory and authentication APIs are still in progr
 
 ## Routes
 
+Public:
+
 - `GET /api/v1/health` — API and database health check
 - `POST /api/v1/auth/register` — register a warehouse staff user and receive a Bearer token
 - `POST /api/v1/auth/login` — authenticate and receive a Bearer token
-- `GET /api/v1/auth/me` — return the authenticated user; Bearer token required
 
-Additional routes are still in progress.
+Bearer token required:
+
+- `GET /api/v1/auth/me`
+- `POST|GET /api/v1/categories`
+- `POST|GET /api/v1/products`
+- `GET|PATCH|DELETE /api/v1/products/:id` (`DELETE` performs deactivation)
+- `POST|GET /api/v1/warehouses`
+- `GET|PATCH /api/v1/warehouses/:id`
+- `POST /api/v1/warehouses/:id/locations`
+- `GET /api/v1/locations`
+- `GET|PATCH /api/v1/locations/:id`
+- `GET /api/v1/stock`
+
+Inventory operation and ledger routes are still in progress.
 
 ## APIs
 
-Authentication uses JWT Bearer tokens. Send protected requests with `Authorization: Bearer <accessToken>`. Public registration cannot assign elevated roles. Passwords are hashed with bcrypt and never returned. Full request/response/error contracts will be recorded after all backend APIs are validated.
+Authentication uses JWT Bearer tokens. Send protected requests with `Authorization: Bearer <accessToken>`. Public registration cannot assign elevated roles. Passwords are hashed with bcrypt and never returned.
+
+Product responses include total stock and per-location balances. Stock is read-only through product and stock routes; these APIs never modify balances. Use SKU/name search and category/status filters on product lists. Use product, location, warehouse, search, and low-stock filters on stock lists. Full request/response/error contracts will be recorded after all backend APIs are validated.
 
 ## Database
 
