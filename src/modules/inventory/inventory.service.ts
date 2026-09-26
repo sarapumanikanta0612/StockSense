@@ -7,6 +7,10 @@ import {
 import { AppError } from "../../errors/app-error.js";
 import { prisma } from "../../lib/prisma.js";
 import { operationInclude, serializeOperation } from "../operations/operation.service.js";
+import {
+  isSerializableTransactionConflict,
+  retrySerializableTransaction,
+} from "./transaction-retry.js";
 
 type TransactionClient = Prisma.TransactionClient;
 
@@ -43,7 +47,47 @@ async function decreaseBalance(
   }
 }
 
-export async function validateOperation(
+type OperationForPosting = Prisma.InventoryDocumentGetPayload<{ include: { items: true } }>;
+
+async function validateActiveReferences(
+  transaction: TransactionClient,
+  operation: OperationForPosting,
+): Promise<void> {
+  const productIds = operation.items.map((item) => item.productId);
+  const activeProducts = await transaction.product.findMany({
+    where: { id: { in: productIds }, isActive: true },
+    select: { id: true },
+  });
+
+  if (activeProducts.length !== productIds.length) {
+    const activeProductIds = new Set(activeProducts.map((product) => product.id));
+    throw new AppError(422, "INVALID_PRODUCT", "One or more products are invalid or inactive", {
+      productIds: productIds.filter((productId) => !activeProductIds.has(productId)),
+    });
+  }
+
+  const locationIds = [operation.sourceLocationId, operation.destinationLocationId].filter(
+    (locationId): locationId is string => locationId !== null,
+  );
+  const uniqueLocationIds = [...new Set(locationIds)];
+  const activeLocations = await transaction.location.findMany({
+    where: {
+      id: { in: uniqueLocationIds },
+      isActive: true,
+      warehouse: { isActive: true },
+    },
+    select: { id: true },
+  });
+
+  if (activeLocations.length !== uniqueLocationIds.length) {
+    const activeLocationIds = new Set(activeLocations.map((location) => location.id));
+    throw new AppError(422, "INVALID_LOCATION", "One or more locations are invalid or inactive", {
+      locationIds: uniqueLocationIds.filter((locationId) => !activeLocationIds.has(locationId)),
+    });
+  }
+}
+
+async function runValidationTransaction(
   id: string,
   type: InventoryDocumentType,
   performedById: string,
@@ -71,6 +115,7 @@ export async function validateOperation(
         where: { id },
         include: { items: true },
       });
+      await validateActiveReferences(transaction, operation);
 
       for (const item of operation.items) {
         let movementQuantity = item.quantity;
@@ -160,4 +205,26 @@ export async function validateOperation(
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
   );
+}
+
+export async function validateOperation(
+  id: string,
+  type: InventoryDocumentType,
+  performedById: string,
+) {
+  try {
+    return await retrySerializableTransaction(() =>
+      runValidationTransaction(id, type, performedById),
+    );
+  } catch (error) {
+    if (!isSerializableTransactionConflict(error)) {
+      throw error;
+    }
+    throw new AppError(
+      409,
+      "INVENTORY_CONFLICT",
+      "Inventory changed concurrently; retry the operation",
+      { retryable: true },
+    );
+  }
 }
