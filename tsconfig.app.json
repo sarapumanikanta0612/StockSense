@@ -31,9 +31,7 @@
     "src/layouts/**/*.tsx",
     "src/pages/**/*.tsx",
     "src/services/**/*.ts",
-    "src/types/inventory.ts",
-    "src/types/inventoryActivity.ts",
-    "src/types/products.ts",
+    "src/types/**/*.ts",
     "src/utils/**/*.ts"
   ]
 }
