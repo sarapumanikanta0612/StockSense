@@ -1,3 +1,4 @@
+import { InsightPanel } from '../components/dashboard/InsightPanel'
 import { LowStockTable } from '../components/dashboard/LowStockTable'
 import { MovementList } from '../components/dashboard/MovementList'
 import { StockOverview } from '../components/dashboard/StockOverview'
@@ -22,13 +23,16 @@ export function DashboardPage() {
   if (error || !data) return <ErrorState message={error ?? 'Dashboard data is unavailable.'} onRetry={retry} />
 
   const { statistics } = data
+  const lowStockPercentage = statistics.activeSkus === 0
+    ? 0
+    : Math.round((statistics.lowStock / statistics.activeSkus) * 100)
 
   return (
     <div className="page dashboard-page">
       <PageHeader
-        eyebrow="Overview"
+        eyebrow="Live overview"
         title="Inventory dashboard"
-        description="Monitor stock health and warehouse activity from one clear workspace."
+        description="Monitor stock health and warehouse activity from the live StockSense ledger."
         actions={(
           <span className="updated-pill">
             <Icon name="clock" size={16} />
@@ -46,7 +50,7 @@ export function DashboardPage() {
           value={statistics.totalProductsInStock.toLocaleString()}
         />
         <StatCard
-          detail="6.7% of tracked products"
+          detail={`${lowStockPercentage}% of active products`}
           icon="warning"
           label="Low stock"
           tone="warning"
@@ -60,24 +64,32 @@ export function DashboardPage() {
           value={statistics.outOfStock.toString()}
         />
         <StatCard
-          detail={`${statistics.unitsExpected} units expected`}
+          detail={`${statistics.pendingReceiptQuantity.toLocaleString()} total line quantity`}
           icon="arrowDown"
           label="Pending receipts"
           tone="success"
           value={statistics.pendingReceipts.toString()}
         />
         <StatCard
-          detail={`${statistics.unitsReserved} units reserved`}
+          detail={`${statistics.pendingDeliveryQuantity.toLocaleString()} total line quantity`}
           icon="arrowUp"
           label="Pending deliveries"
           tone="info"
           value={statistics.pendingDeliveries.toString()}
+        />
+        <StatCard
+          detail="Draft transfers awaiting validation"
+          icon="transfers"
+          label="Transfers scheduled"
+          tone="brand"
+          value={statistics.scheduledTransfers.toString()}
         />
       </section>
 
       <div className="dashboard-grid">
         <LowStockTable products={data.lowStockProducts} />
         <StockOverview items={data.stockOverview} />
+        <InsightPanel insight={data.insight} />
         <MovementList movements={data.recentMovements} />
       </div>
     </div>

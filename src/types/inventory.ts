@@ -39,8 +39,9 @@ export interface DashboardStatistics {
   outOfStock: number
   pendingReceipts: number
   pendingDeliveries: number
-  unitsExpected: number
-  unitsReserved: number
+  scheduledTransfers: number
+  pendingReceiptQuantity: number
+  pendingDeliveryQuantity: number
 }
 
 export interface StockOverviewItem {
@@ -50,10 +51,17 @@ export interface StockOverviewItem {
   percentage: number
 }
 
+export interface DashboardInsight {
+  source: 'ai' | 'rule-based'
+  headline: string
+  messages: string[]
+}
+
 export interface DashboardSnapshot {
   statistics: DashboardStatistics
   stockOverview: StockOverviewItem[]
   lowStockProducts: Product[]
   recentMovements: StockMovement[]
+  insight: DashboardInsight
   lastUpdated: string
 }

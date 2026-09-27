@@ -2431,3 +2431,56 @@ a:focus:not(:focus-visible) {
     margin: 24px 0 22px;
   }
 }
+
+/* Live dashboard insight */
+.dashboard-page .stats-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.insight-panel {
+  grid-column: 1 / -1;
+}
+
+.insight-panel__body {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 15px;
+  padding: 20px;
+}
+
+.insight-panel__icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--brand-700);
+  background: var(--brand-50);
+}
+
+.insight-panel__body strong {
+  color: var(--ink-950);
+  font-size: 14px;
+}
+
+.insight-panel__body ul {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--ink-600);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .dashboard-page .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .dashboard-page .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

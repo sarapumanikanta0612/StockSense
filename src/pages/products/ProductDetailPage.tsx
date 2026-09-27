@@ -31,11 +31,11 @@ export function ProductDetailPage() {
   if (!product) {
     return (
       <div className="page product-not-found">
-        <PageHeader eyebrow="Catalogue" title="Product not found" description="This product does not exist in the current demo catalogue." />
+        <PageHeader eyebrow="Catalogue" title="Product not found" description="This product does not exist or is no longer available." />
         <div className="panel product-empty-state">
           <span className="product-empty-state__icon"><Icon name="products" size={25} /></span>
           <h2>We could not find that product</h2>
-          <p>It may have been removed from the demo session or the link may be incorrect.</p>
+          <p>It may have been removed or the link may be incorrect.</p>
           <Link className="button button--secondary" to="/products"><Icon name="arrowLeft" size={17} /> Back to products</Link>
         </div>
       </div>
@@ -73,9 +73,6 @@ export function ProductDetailPage() {
               <span>{product.sku}</span>
             </div>
           </div>
-          <p className="product-profile__description">
-            {product.description || 'No product description has been added.'}
-          </p>
           <dl className="product-detail-list">
             <div><dt>Category</dt><dd>{product.category?.name ?? 'Uncategorized'}</dd></div>
             <div><dt>Unit of measure</dt><dd>{product.unitOfMeasure}</dd></div>

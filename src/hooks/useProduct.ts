@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { demoProductService } from '../services/productService'
+import { productService } from '../services/productService'
 import type { CatalogProduct } from '../types/products'
 
 export function useProduct(productId: string | undefined) {
@@ -17,7 +17,7 @@ export function useProduct(productId: string | undefined) {
     setIsLoading(true)
     setError(null)
     try {
-      setProduct(await demoProductService.getProduct(productId))
+      setProduct(await productService.getProduct(productId))
     } catch {
       setError('Product details could not be loaded. Please try again.')
     } finally {

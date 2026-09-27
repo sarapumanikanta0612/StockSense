@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { demoDashboardService } from '../services/dashboardService'
+import { dashboardService } from '../services/dashboardService'
 import type { DashboardSnapshot } from '../types/inventory'
 
 export function useDashboard() {
@@ -12,10 +12,9 @@ export function useDashboard() {
     setError(null)
 
     try {
-      const snapshot = await demoDashboardService.getDashboardSnapshot()
-      setData(snapshot)
-    } catch {
-      setError('Dashboard data could not be loaded. Please try again.')
+      setData(await dashboardService.getDashboardSnapshot())
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Dashboard data could not be loaded.')
     } finally {
       setIsLoading(false)
     }

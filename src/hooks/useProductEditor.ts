@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { demoProductService } from '../services/productService'
+import { productService } from '../services/productService'
 import type { CatalogProduct, ProductCategory, ProductInput } from '../types/products'
 
 export function useProductEditor(productId?: string) {
@@ -14,8 +14,8 @@ export function useProductEditor(productId?: string) {
     setError(null)
     try {
       const [availableCategories, existingProduct] = await Promise.all([
-        demoProductService.listCategories(),
-        productId ? demoProductService.getProduct(productId) : Promise.resolve(null),
+        productService.listCategories(),
+        productId ? productService.getProduct(productId) : Promise.resolve(null),
       ])
       setCategories(availableCategories)
       setProduct(existingProduct)
@@ -34,8 +34,8 @@ export function useProductEditor(productId?: string) {
     setIsSubmitting(true)
     try {
       return productId
-        ? await demoProductService.updateProduct(productId, input)
-        : await demoProductService.createProduct(input)
+        ? await productService.updateProduct(productId, input)
+        : await productService.createProduct(input)
     } finally {
       setIsSubmitting(false)
     }

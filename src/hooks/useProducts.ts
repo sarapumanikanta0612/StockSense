@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { demoProductService } from '../services/productService'
+import { productService } from '../services/productService'
 import type { ProductListFilters, ProductListResult } from '../types/products'
 
 export function useProducts(filters: ProductListFilters) {
@@ -14,7 +14,7 @@ export function useProducts(filters: ProductListFilters) {
     setError(null)
 
     try {
-      const result = await demoProductService.listProducts(filters)
+      const result = await productService.listProducts(filters)
       if (currentRequest === requestId.current) setData(result)
     } catch {
       if (currentRequest === requestId.current) {

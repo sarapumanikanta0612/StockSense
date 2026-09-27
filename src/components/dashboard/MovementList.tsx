@@ -26,7 +26,7 @@ function getLocationLabel(movement: StockMovement) {
   if (movement.type === 'transfer') {
     return `${formatLocation(movement.source)} → ${formatLocation(movement.destination)}`
   }
-  return `Counted at ${formatLocation(movement.destination)}`
+  return `Adjusted at ${formatLocation(movement.destination ?? movement.source)}`
 }
 
 function getQuantityLabel(movement: StockMovement) {

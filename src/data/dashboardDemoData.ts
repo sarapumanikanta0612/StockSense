@@ -12,8 +12,9 @@ export const dashboardDemoData: DashboardSnapshot = {
     outOfStock: 3,
     pendingReceipts: 12,
     pendingDeliveries: 9,
-    unitsExpected: 420,
-    unitsReserved: 186,
+    scheduledTransfers: 4,
+    pendingReceiptQuantity: 420,
+    pendingDeliveryQuantity: 186,
   },
   stockOverview: [
     { status: 'healthy', label: 'Healthy stock', count: 108, percentage: 90.8 },
@@ -124,5 +125,10 @@ export const dashboardDemoData: DashboardSnapshot = {
       destination: { warehouseName: 'Central Warehouse', locationName: 'Rack A-12' },
     },
   ],
+  insight: {
+    source: 'rule-based',
+    headline: 'Review products requiring replenishment.',
+    messages: ['Low-stock and movement insights are generated from current inventory data.'],
+  },
   lastUpdated: '2026-09-26T10:15:00+05:30',
 }

@@ -7,14 +7,13 @@ type ProductField = keyof ProductInput
 type ProductErrors = Partial<Record<ProductField, string>>
 
 const decimalPattern = /^\d{1,15}(?:\.\d{1,3})?$/
-const fieldOrder: ProductField[] = ['name', 'sku', 'categoryId', 'unitOfMeasure', 'description', 'reorderLevel']
+const fieldOrder: ProductField[] = ['name', 'sku', 'categoryId', 'unitOfMeasure', 'reorderLevel']
 
 export const emptyProductInput: ProductInput = {
   name: '',
   sku: '',
   categoryId: null,
   unitOfMeasure: '',
-  description: '',
   reorderLevel: '0',
 }
 
@@ -23,7 +22,6 @@ function validateProduct(values: ProductInput) {
   const name = values.name.trim()
   const sku = values.sku.trim()
   const unit = values.unitOfMeasure.trim()
-  const description = values.description.trim()
   const reorderLevel = values.reorderLevel.trim()
 
   if (!name) errors.name = 'Product name is required.'
@@ -34,8 +32,6 @@ function validateProduct(values: ProductInput) {
 
   if (!unit) errors.unitOfMeasure = 'Unit of measure is required.'
   else if (unit.length > 32) errors.unitOfMeasure = 'Unit must be 32 characters or fewer.'
-
-  if (description.length > 500) errors.description = 'Description must be 500 characters or fewer.'
 
   if (!reorderLevel) errors.reorderLevel = 'Reorder level is required.'
   else if (!decimalPattern.test(reorderLevel)) {
@@ -89,7 +85,6 @@ export function ProductForm({
       sku: values.sku.trim().toUpperCase(),
       categoryId: values.categoryId,
       unitOfMeasure: values.unitOfMeasure.trim(),
-      description: values.description.trim(),
       reorderLevel: values.reorderLevel.trim(),
     }
 
@@ -102,6 +97,8 @@ export function ProductForm({
       } else if (error instanceof ProductServiceError && error.code === 'INVALID_CATEGORY') {
         setErrors((current) => ({ ...current, categoryId: error.message }))
         window.requestAnimationFrame(() => document.getElementById('product-categoryId')?.focus())
+      } else if (error instanceof ProductServiceError) {
+        setSubmitError(error.message)
       } else {
         setSubmitError('The product could not be saved. Your changes are still here—please try again.')
       }
@@ -199,22 +196,6 @@ export function ProductForm({
               <option value="pairs" />
             </datalist>
             {errors.unitOfMeasure ? <span className="form-field__error" id="product-unitOfMeasure-error">{errors.unitOfMeasure}</span> : null}
-          </div>
-
-          <div className="form-field form-field--wide">
-            <label htmlFor="product-description">Description</label>
-            <textarea
-              aria-describedby={`product-description-hint${errors.description ? ' product-description-error' : ''}`}
-              aria-invalid={Boolean(errors.description)}
-              id="product-description"
-              maxLength={500}
-              onChange={(event) => updateField('description', event.target.value)}
-              placeholder="Add handling notes or a concise product description"
-              rows={4}
-              value={values.description}
-            />
-            <span className="form-field__hint" id="product-description-hint">Optional · {values.description.length}/500 characters</span>
-            {errors.description ? <span className="form-field__error" id="product-description-error">{errors.description}</span> : null}
           </div>
         </div>
       </section>

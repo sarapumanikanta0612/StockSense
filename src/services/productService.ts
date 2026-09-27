@@ -1,4 +1,4 @@
-import { productDemoCategories, productDemoData } from '../data/productDemoData'
+import { ApiError, apiClient } from './apiClient'
 import type {
   CatalogProduct,
   CatalogStockStatus,
@@ -9,15 +9,13 @@ import type {
 } from '../types/products'
 import { compareDecimalStrings } from '../utils/decimal'
 
-const STORE_KEY = 'stocksense.demo.products.v1'
-const STORE_VERSION = 1
+const PRODUCT_PAGE_SIZE = 100
 
-interface StoredProductData {
-  version: number
-  products: CatalogProduct[]
-}
-
-export type ProductServiceErrorCode = 'DUPLICATE_SKU' | 'INVALID_CATEGORY' | 'PRODUCT_NOT_FOUND'
+export type ProductServiceErrorCode =
+  | 'DUPLICATE_SKU'
+  | 'INVALID_CATEGORY'
+  | 'PRODUCT_NOT_FOUND'
+  | 'VALIDATION_ERROR'
 
 export class ProductServiceError extends Error {
   constructor(
@@ -37,68 +35,66 @@ export interface ProductDataService {
   updateProduct: (id: string, input: ProductInput) => Promise<CatalogProduct>
 }
 
-let memoryProducts: CatalogProduct[] | null = null
-
-function clone<T>(value: T): T {
-  return structuredClone(value)
-}
-
-function isStoredProductData(value: unknown): value is StoredProductData {
-  if (!value || typeof value !== 'object') return false
-  const candidate = value as Partial<StoredProductData>
-  return candidate.version === STORE_VERSION && Array.isArray(candidate.products)
-}
-
-function loadProducts() {
-  if (memoryProducts) return clone(memoryProducts)
-
-  try {
-    const storedValue = typeof window !== 'undefined' ? window.sessionStorage.getItem(STORE_KEY) : null
-    if (storedValue) {
-      const parsed: unknown = JSON.parse(storedValue)
-      if (isStoredProductData(parsed)) {
-        memoryProducts = clone(parsed.products)
-        return clone(memoryProducts)
-      }
-    }
-  } catch {
-    // Storage can be unavailable in restricted browser contexts; memory remains usable.
+function mapProductError(error: unknown): Error {
+  if (!(error instanceof ApiError)) {
+    return error instanceof Error ? error : new Error('The product request failed.')
   }
 
-  memoryProducts = clone(productDemoData)
-  return clone(memoryProducts)
+  if (error.code === 'CONFLICT') {
+    return new ProductServiceError('DUPLICATE_SKU', 'A product with this SKU already exists.')
+  }
+  if (error.code === 'INVALID_REFERENCE') {
+    return new ProductServiceError('INVALID_CATEGORY', 'Select an active product category and try again.')
+  }
+  if (error.code === 'PRODUCT_NOT_FOUND') {
+    return new ProductServiceError('PRODUCT_NOT_FOUND', 'This product no longer exists.')
+  }
+  if (error.code === 'VALIDATION_ERROR') {
+    return new ProductServiceError(
+      'VALIDATION_ERROR',
+      'Check the product details for invalid or incomplete values and try again.',
+    )
+  }
+
+  return error
 }
 
-function saveProducts(products: CatalogProduct[]) {
-  memoryProducts = clone(products)
-
-  try {
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem(STORE_KEY, JSON.stringify({ version: STORE_VERSION, products }))
-    }
-  } catch {
-    // Keep the in-memory demo session functional if browser storage is unavailable.
+function productPayload(input: ProductInput) {
+  return {
+    name: input.name,
+    sku: input.sku,
+    categoryId: input.categoryId,
+    unitOfMeasure: input.unitOfMeasure,
+    reorderLevel: input.reorderLevel,
   }
 }
 
-function normalizeDecimal(value: string) {
-  const [integerPart, fractionPart = ''] = value.split('.')
-  return `${integerPart}.${fractionPart.padEnd(3, '0')}`
-}
+export async function fetchActiveProducts(): Promise<CatalogProduct[]> {
+  try {
+    const firstPage = await apiClient.get<CatalogProduct[]>('/products', {
+      page: 1,
+      limit: PRODUCT_PAGE_SIZE,
+      isActive: true,
+    })
+    const total = firstPage.meta?.pagination?.total ?? firstPage.data.length
+    const pageCount = Math.ceil(total / PRODUCT_PAGE_SIZE)
 
-function resolveCategory(categoryId: string | null) {
-  if (!categoryId) return null
-  const category = productDemoCategories.find((item) => item.id === categoryId)
-  if (!category) throw new ProductServiceError('INVALID_CATEGORY', 'Select a valid product category.')
-  return category
-}
+    if (pageCount <= 1) return firstPage.data
 
-function ensureUniqueSku(products: CatalogProduct[], sku: string, excludedId?: string) {
-  const normalizedSku = sku.trim().toUpperCase()
-  const isDuplicate = products.some(
-    (product) => product.id !== excludedId && product.sku.toUpperCase() === normalizedSku,
-  )
-  if (isDuplicate) throw new ProductServiceError('DUPLICATE_SKU', 'A product with this SKU already exists.')
+    const remainingPages = await Promise.all(
+      Array.from({ length: pageCount - 1 }, (_, index) => (
+        apiClient.get<CatalogProduct[]>('/products', {
+          page: index + 2,
+          limit: PRODUCT_PAGE_SIZE,
+          isActive: true,
+        })
+      )),
+    )
+
+    return [firstPage, ...remainingPages].flatMap((page) => page.data)
+  } catch (error) {
+    throw mapProductError(error)
+  }
 }
 
 export function getCatalogStockStatus(product: CatalogProduct): CatalogStockStatus {
@@ -107,9 +103,12 @@ export function getCatalogStockStatus(product: CatalogProduct): CatalogStockStat
   return 'in-stock'
 }
 
-export const demoProductService: ProductDataService = {
+export const productService: ProductDataService = {
   async listProducts(filters) {
-    const products = loadProducts()
+    const [products, categories] = await Promise.all([
+      fetchActiveProducts(),
+      this.listCategories(),
+    ])
     const normalizedSearch = filters.search.trim().toLowerCase()
     const filteredProducts = products.filter((product) => {
       const matchesSearch = !normalizedSearch
@@ -122,60 +121,49 @@ export const demoProductService: ProductDataService = {
     })
 
     return {
-      products: clone(filteredProducts.sort((a, b) => a.name.localeCompare(b.name))),
-      categories: clone(productDemoCategories),
+      products: filteredProducts.sort((left, right) => left.name.localeCompare(right.name)),
+      categories,
       total: products.length,
     }
   },
 
   async getProduct(id) {
-    const product = loadProducts().find((item) => item.id === id)
-    return product ? clone(product) : null
+    try {
+      const response = await apiClient.get<CatalogProduct>(`/products/${id}`)
+      return response.data
+    } catch (error) {
+      const mappedError = mapProductError(error)
+      if (mappedError instanceof ProductServiceError && mappedError.code === 'PRODUCT_NOT_FOUND') {
+        return null
+      }
+      throw mappedError
+    }
   },
 
   async listCategories() {
-    return clone(productDemoCategories)
+    try {
+      const response = await apiClient.get<ProductCategory[]>('/categories')
+      return response.data
+    } catch (error) {
+      throw mapProductError(error)
+    }
   },
 
   async createProduct(input) {
-    const products = loadProducts()
-    ensureUniqueSku(products, input.sku)
-    const now = new Date().toISOString()
-    const product: CatalogProduct = {
-      id: globalThis.crypto.randomUUID(),
-      name: input.name.trim(),
-      sku: input.sku.trim().toUpperCase(),
-      category: clone(resolveCategory(input.categoryId)),
-      unitOfMeasure: input.unitOfMeasure.trim(),
-      description: input.description.trim(),
-      reorderLevel: normalizeDecimal(input.reorderLevel),
-      totalStock: '0.000',
-      stockByLocation: [],
-      isActive: true,
-      createdAt: now,
-      updatedAt: now,
+    try {
+      const response = await apiClient.post<CatalogProduct>('/products', productPayload(input))
+      return response.data
+    } catch (error) {
+      throw mapProductError(error)
     }
-    saveProducts([...products, product])
-    return clone(product)
   },
 
   async updateProduct(id, input) {
-    const products = loadProducts()
-    const currentProduct = products.find((product) => product.id === id)
-    if (!currentProduct) throw new ProductServiceError('PRODUCT_NOT_FOUND', 'Product not found.')
-
-    ensureUniqueSku(products, input.sku, id)
-    const updatedProduct: CatalogProduct = {
-      ...currentProduct,
-      name: input.name.trim(),
-      sku: input.sku.trim().toUpperCase(),
-      category: clone(resolveCategory(input.categoryId)),
-      unitOfMeasure: input.unitOfMeasure.trim(),
-      description: input.description.trim(),
-      reorderLevel: normalizeDecimal(input.reorderLevel),
-      updatedAt: new Date().toISOString(),
+    try {
+      const response = await apiClient.patch<CatalogProduct>(`/products/${id}`, productPayload(input))
+      return response.data
+    } catch (error) {
+      throw mapProductError(error)
     }
-    saveProducts(products.map((product) => product.id === id ? updatedProduct : product))
-    return clone(updatedProduct)
   },
 }

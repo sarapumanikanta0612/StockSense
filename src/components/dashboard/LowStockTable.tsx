@@ -28,7 +28,9 @@ export function LowStockTable({ products }: LowStockTableProps) {
           </thead>
           <tbody>
             {products.map((product) => {
-              const stockRatio = Math.min((product.quantity / product.minimumStock) * 100, 100)
+              const stockRatio = product.minimumStock > 0
+                ? Math.min((product.quantity / product.minimumStock) * 100, 100)
+                : product.quantity > 0 ? 100 : 0
 
               return (
                 <tr key={product.id}>

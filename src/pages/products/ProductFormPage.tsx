@@ -27,7 +27,7 @@ export function ProductFormPage({ mode }: ProductFormPageProps) {
   if (isEdit && !product) {
     return (
       <div className="page">
-        <PageHeader eyebrow="Catalogue" title="Product not found" description="The product you tried to edit is not available in this demo session." />
+        <PageHeader eyebrow="Catalogue" title="Product not found" description="The product you tried to edit is not available." />
         <ErrorState message="Return to the product catalogue and choose an available product." title="Unable to edit product" />
         <div className="standalone-actions"><button className="button button--secondary" onClick={() => navigate('/products')} type="button">Back to products</button></div>
       </div>
@@ -39,7 +39,6 @@ export function ProductFormPage({ mode }: ProductFormPageProps) {
     sku: product.sku,
     categoryId: product.category?.id ?? null,
     unitOfMeasure: product.unitOfMeasure,
-    description: product.description,
     reorderLevel: product.reorderLevel,
   } : emptyProductInput
 

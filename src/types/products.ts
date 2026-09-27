@@ -29,7 +29,8 @@ export interface CatalogProduct {
   sku: string
   category: ProductCategory | null
   unitOfMeasure: string
-  description: string
+  /** Legacy demo-fixture field; live product APIs do not persist it. */
+  description?: string
   reorderLevel: string
   totalStock: string
   stockByLocation: ProductStockLocation[]
@@ -43,7 +44,6 @@ export interface ProductInput {
   sku: string
   categoryId: string | null
   unitOfMeasure: string
-  description: string
   reorderLevel: string
 }
 
